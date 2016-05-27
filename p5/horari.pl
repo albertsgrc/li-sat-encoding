@@ -45,11 +45,13 @@ courseRoom(C, R) :- courseRooms(C, CR), member(R, CR).
 
 %%%%%%  Variables: It is mandatory to use these variables!
 % courseHour-C-D-H   meaning "course C is given on day D at hour H"
+% courseDay-C-D      meaning "Course C is given on day D"
 % courseRoom-C-R     meaning "course C is given at room R"
 % late-D             meaning "there is some course at 13:00 on day D"
 
 writeClauses(MaxLecturesLate) :-
     defineLate,
+    defineCourseDay,
     atMostThreeHoursPerStudentAndDay, % Done
     exactlyOneRoomPerCourse, % Done
     exactly3hoursPerCourse, % Done
@@ -68,10 +70,18 @@ defineLate :-
 
 defineLate.
 
+defineCourseDay :-
+    course(C), day(D),
+    findall(courseHour-C-D-H, hour(H), Lits),
+    expressOr(courseDay-C-D, Lits),
+    fail.
+
+defineCourseDay.
+
 
 atMostThreeHoursPerStudentAndDay :-
     day(D), student(S),
-    findall(courseHour-C-D-H, (hour(H), studentCourse(S, C)), Lits),
+    findall(courseDay-C-D, studentCourse(S, C), Lits),
     atMost(3, Lits),
     fail.
 
@@ -91,7 +101,7 @@ exactlyOneRoomPerCourse.
 
 exactly3hoursPerCourse :-
     course(C),
-    findall(courseHour-C-D-H, (day(D), hour(H)), Lits),
+    findall(courseDay-C-D, day(D), Lits),
     exactly(3, Lits),
     fail.
 
@@ -129,8 +139,6 @@ atMostOneCoursePerRoomAndDayAndHour.
 atMostMaxLecturesLate(L) :-
     findall(late-D, day(D), Lits),
     atMost(L, Lits).
-
-atMostMaxLecturesLate(_).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -194,11 +202,11 @@ subsetOfSize(N,[_|L],   S ):-            length(L,Leng), Leng>=N,  subsetOfSize(
 main:-  symbolicOutput(1), !, writeClauses(5), halt.   % print the clauses in symbolic form and halt
 main:-  tryWith(5, noSolution), !.
 
-tryWith(-1, S) :- displaySol(S), nl, nl, halt.
+tryWith(-1, S) :- write('The best solution, with 0 days late:'), nl, displaySol(S), nl, nl, halt.
 tryWith(MaxLecturesLate,  _) :-
     initClauseGeneration,
-    tell(clauses), writeClauses(MaxLecturesLate), told,          % generate the (numeric) SAT clauses and call the solver
-	  tell(header),  writeHeader,  told,
+    tell(clauses), writeClauses(MaxLecturesLate), told,        % generate the (numeric) SAT clauses and call the solver
+      tell(header),  writeHeader,  told,
 	  numVars(N), numClauses(C),
     write('Trying with at most '), write(MaxLecturesLate), write(' lectures late.'), nl,
     write('Generated '), write(C), write(' clauses over '), write(N), write(' variables. '),nl,
@@ -211,7 +219,7 @@ tryWith(MaxLecturesLate,  _) :-
     MaxLecturesLateN is LL - 1,
     tryWith(MaxLecturesLateN, M).
 tryWith(_, noSolution) :- write('Unsatisfiable'), nl, halt.
-tryWith(_, S) :- write('Solution found: '), nl, displaySol(S), nl, nl, halt.
+tryWith(B, S) :- write('Unsatisfiable'), nl, write('The best solution, with '), K is B+1, write(K), write(' days late:'), nl, displaySol(S), nl, nl, halt.
 
 countLecturesLate(_, _) :- retractall(lecturesLateCount(_)), assert(lecturesLateCount(0)), fail.
 countLecturesLate(S, _) :- day(D), member(late-D, S), retract(lecturesLateCount(X1)), X is X1+1, assert(lecturesLateCount(X)), fail.
