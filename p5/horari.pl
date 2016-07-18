@@ -203,7 +203,7 @@ main:-  symbolicOutput(1), !, writeClauses(5), halt.   % print the clauses in sy
 main:-  tryWith(5, noSolution), !.
 
 tryWith(-1, S) :- write('The best solution, with 0 days late:'), nl, displaySol(S), nl, nl, halt.
-tryWith(MaxLecturesLate,  _) :-
+tryWith(MaxLecturesLate, _) :-
     initClauseGeneration,
     tell(clauses), writeClauses(MaxLecturesLate), told,        % generate the (numeric) SAT clauses and call the solver
       tell(header),  writeHeader,  told,
